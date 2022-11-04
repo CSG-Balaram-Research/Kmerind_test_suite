@@ -8,7 +8,8 @@
 
 //Type definations
 template <typename key>
-using map_parm = bliss::index::kmer::BimoleculeHashMapParams<key>;
+//using map_parm = bliss::index::kmer::BimoleculeHashMapParams<key>;
+using map_parm = bliss::index::kmer::SingleStrandHashMapParams<key>;
 
 template <typename tupple_type>
 using fastq_paser = bliss::io::FASTQParser<tupple_type>;
@@ -19,6 +20,9 @@ using seq_iter = bliss::io::SequencesIterator<Iterator, Parser>;
 typedef bliss::common::alphabet::DNA_T<> alph;
 
 typedef bliss::common::Kmer<2, alph> Kmer_4;
+
+using MapType = dsc::counting_unordered_map<Kmer_4, unsigned int, map_parm>;
+typedef bliss::index::kmer::CountIndex<MapType> kmer_index;
 
 typedef std::pair<std::vector<std::string>, std::vector<int>> kmerAndCounts;
 
@@ -48,9 +52,6 @@ int main(int argc, char** argv)
 
 
     //KmerIndex creation
-    using bal_MapType = dsc::counting_unordered_map<Kmer_4, unsigned int, map_parm>;
-    typedef bliss::index::kmer::CountIndex<bal_MapType> kmer_index;
-    
     kmer_index first(comm);
     first.build_mmap<fastq_paser, seq_iter>(input_file, comm);
 
@@ -59,12 +60,21 @@ int main(int argc, char** argv)
     kmerAndCounts actual_counts = read_kmer_counts(file_name);
     std::vector<Kmer_4> kmerind_kmers = get_kmerind_kmers(actual_counts.first);
 
-    std::cout << kmerind_kmers.size() << std::endl;
-    auto counts = first.count(kmerind_kmers);
-    std::cout << kmerind_kmers.size() << std::endl;
+    auto counts = first.find(kmerind_kmers);
+
+    std::vector<int> file_counts = actual_counts.second;
+    std::vector<Kmer_4> file_kmers = get_kmerind_kmers(actual_counts.first);
+    for(int i = 0; i < counts.size(); i++)
+    {
+        for(int j = 0; j < file_counts.size(); j++)
+        {
+            if(counts[i].first == file_kmers[j])
+            {
+                assert(file_counts[j] == counts[i].second);
+            }
+        }
+    }
     
-    std::cout << kmerind_kmers << std::endl;
-    std::cout << counts << std::endl;
 
     std::cout << "workdin" << std::endl;
     
