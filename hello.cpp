@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 
     
     //Input data
-    std::string input_file = "../kmerind/test/data/natural.fastq";
+    std::string input_file = "tests/test_small.fastq";
 
 
     //Kmer data type intialization
