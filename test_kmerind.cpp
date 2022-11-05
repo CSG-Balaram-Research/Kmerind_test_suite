@@ -26,6 +26,11 @@ typedef bliss::index::kmer::CountIndex<MapType> kmer_index;
 typedef std::pair<std::vector<std::string>, std::vector<int>> kmerAndCounts;
 
 typedef decltype(::std::declval<MapType>().count(::std::declval<std::vector<Kmer_4> &>())) KmerindCountsType;
+KmerindCountsType just;
+typedef decltype(just[0]) KmerCountPair;
+
+typedef std::pair<Kmer_4, unsigned long int> MyKmerCount;
+
 
 
 
@@ -36,6 +41,14 @@ kmerAndCounts read_kmer_counts(std::string file_name);
 std::vector<Kmer_4> get_kmerind_kmers(std::vector<std::string> file_string);
 
 bool equal_my(KmerindCountsType counts, kmerAndCounts file);
+
+bool less_than_sort(KmerCountPair i, KmerCountPair j);
+
+bool less_than_lower(KmerCountPair i, MyKmerCount j);
+
+
+
+
 
 
 int main(int argc, char** argv)
@@ -68,28 +81,30 @@ int main(int argc, char** argv)
 }
 
 
+
+
+
+
+
+//Function definations
 bool equal_my(KmerindCountsType counts, kmerAndCounts file_data)
 {
-    bool equal = true;    
+    std::sort(counts.begin(), counts.end(), less_than_sort);
     std::vector<int> file_counts = file_data.second;
     std::vector<Kmer_4> file_kmers = get_kmerind_kmers(file_data.first);
+
+    bool equal = true;    
+    bool i_correct = true;
     for(int i = 0; i < file_counts.size(); i++)
     {
-        bool i_correct = false;
+        MyKmerCount val(file_kmers[i], file_counts[i]);
+        auto loc = *std::lower_bound(counts.begin(), counts.end(), val, less_than_lower);
         
-        for(int j = 0; j < counts.size(); j++)
-        {
-
-            if(file_kmers[i] == counts[j].first)
-            {
-                if(file_counts[i] == counts[j].second)
-                    i_correct = true;
-                else
-                    i_correct = false;
-                
-                break;  // There will be only one match since (file_kmers are unique)
-            }
-        }
+        if(loc.first == file_kmers[i] && loc.second == file_counts[i])
+            i_correct = true;
+        else
+            i_correct = false;
+        
 
         if(i_correct == false)
         {
@@ -100,6 +115,7 @@ bool equal_my(KmerindCountsType counts, kmerAndCounts file_data)
 
     return equal;
 }
+
 
 kmerAndCounts read_kmer_counts(std::string file_name)
 {
@@ -137,4 +153,16 @@ std::vector<Kmer_4> get_kmerind_kmers(std::vector<std::string> file_string)
         kmerind_kmers.push_back(Kmer_4(file_string[i]));
     }
     return kmerind_kmers;
+}
+
+
+bool less_than_sort(KmerCountPair i, KmerCountPair j)
+{
+    return (i.first < j.first);
+}
+
+
+bool less_than_lower(KmerCountPair i, MyKmerCount j)
+{
+    return i.first < j.first;
 }
