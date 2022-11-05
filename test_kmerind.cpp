@@ -1,10 +1,12 @@
-#include "../kmerind/src/common/kmer.hpp"
-#include "../kmerind/src/common/alphabets.hpp"
-#include "../kmerind/src/index/kmer_index.hpp"
+#include "common/kmer.hpp"
+#include "common/alphabets.hpp"
+#include "index/kmer_index.hpp"
 #include "mxx/env.hpp"
 #include <bits/stdc++.h>
 #include <mpi.h>
 
+
+const int K_value = 2;
 
 //Type definations
 template <typename key>
@@ -18,35 +20,39 @@ using seq_iter = bliss::io::SequencesIterator<Iterator, Parser>;
 
 typedef bliss::common::alphabet::DNA_T<> alph;
 
-typedef bliss::common::Kmer<2, alph> Kmer_4;
+typedef bliss::common::Kmer<K_value, alph> Kmer_k;
 
-using MapType = dsc::counting_unordered_map<Kmer_4, long unsigned int, map_parm>;
+using MapType = dsc::counting_unordered_map<Kmer_k, long unsigned int, map_parm>;
 typedef bliss::index::kmer::CountIndex<MapType> kmer_index;
 
-typedef std::pair<std::vector<std::string>, std::vector<int>> kmerAndCounts;
+typedef std::pair<std::vector<std::string>, std::vector<int>> MykmerAndCountsVec;
 
-typedef decltype(::std::declval<MapType>().count(::std::declval<std::vector<Kmer_4> &>())) KmerindCountsType;
-KmerindCountsType just;
+typedef std::pair<Kmer_k, unsigned long int> MyKmerCountPair;
+
+typedef decltype(::std::declval<MapType>().count(::std::declval<std::vector<Kmer_k> &>())) kmerAndCountsVec;
+
+kmerAndCountsVec just;
 typedef decltype(just[0]) KmerCountPair;
 
-typedef std::pair<Kmer_4, unsigned long int> MyKmerCount;
 
 
 
 
 
 //Function declaration
-kmerAndCounts read_kmer_counts(std::string file_name);
+bool test_for_fastq(std::string file_name, mxx::comm& comm);
 
-std::vector<Kmer_4> get_kmerind_kmers(std::vector<std::string> file_string);
+bool equal_my(kmerAndCountsVec counts, MykmerAndCountsVec file);
 
-bool equal_my(KmerindCountsType counts, kmerAndCounts file);
+MykmerAndCountsVec read_kmer_counts(std::string file_name);
+
+std::vector<Kmer_k> get_kmerind_kmers(std::vector<std::string> file_string);
 
 bool less_than_sort(KmerCountPair i, KmerCountPair j);
 
-bool less_than_lower(KmerCountPair i, MyKmerCount j);
+bool less_than_lower(KmerCountPair i, MyKmerCountPair j);
 
-bool test_for_fastq(std::string file_name, mxx::comm& comm);
+
 
 
 
@@ -76,8 +82,8 @@ int main(int argc, char** argv)
 //Function definations
 bool test_for_fastq(std::string file_name, mxx::comm& comm)
 {
-    kmerAndCounts actual_counts = read_kmer_counts(file_name);
-    std::vector<Kmer_4> kmerind_kmers = get_kmerind_kmers(actual_counts.first);
+    MykmerAndCountsVec actual_counts = read_kmer_counts(file_name);
+    std::vector<Kmer_k> kmerind_kmers = get_kmerind_kmers(actual_counts.first);
 
     //KmerIndex creation
     kmer_index first(comm);
@@ -89,24 +95,29 @@ bool test_for_fastq(std::string file_name, mxx::comm& comm)
 }
 
 
-bool equal_my(KmerindCountsType counts, kmerAndCounts file_data)
+bool equal_my(kmerAndCountsVec counts, MykmerAndCountsVec file_data)
 {
     std::sort(counts.begin(), counts.end(), less_than_sort);
     std::vector<int> file_counts = file_data.second;
-    std::vector<Kmer_4> file_kmers = get_kmerind_kmers(file_data.first);
+    std::vector<Kmer_k> file_kmers = get_kmerind_kmers(file_data.first);
 
     bool equal = true;    
     bool i_correct = true;
     for(int i = 0; i < file_counts.size(); i++)
     {
-        MyKmerCount val(file_kmers[i], file_counts[i]);
-        auto loc = *std::lower_bound(counts.begin(), counts.end(), val, less_than_lower);
-        
-        if(loc.first == file_kmers[i] && loc.second == file_counts[i])
-            i_correct = true;
+        MyKmerCountPair val(file_kmers[i], file_counts[i]);
+        auto loc = std::lower_bound(counts.begin(), counts.end(), val, less_than_lower);
+        if(loc != counts.end())
+        {
+            KmerCountPair match = *loc;
+            if(match.first == file_kmers[i] && match.second == file_counts[i])
+                i_correct = true;
+            else
+                i_correct = false;
+        }
         else
             i_correct = false;
-        
+
 
         if(i_correct == false)
         {
@@ -119,7 +130,7 @@ bool equal_my(KmerindCountsType counts, kmerAndCounts file_data)
 }
 
 
-kmerAndCounts read_kmer_counts(std::string file_name)
+MykmerAndCountsVec read_kmer_counts(std::string file_name)
 {
     std::string in_file = file_name + ".counts";
     std::ifstream file_stream(in_file);
@@ -147,12 +158,12 @@ kmerAndCounts read_kmer_counts(std::string file_name)
 
 
 
-std::vector<Kmer_4> get_kmerind_kmers(std::vector<std::string> file_string)
+std::vector<Kmer_k> get_kmerind_kmers(std::vector<std::string> file_string)
 {
-    std::vector<Kmer_4> kmerind_kmers;
+    std::vector<Kmer_k> kmerind_kmers;
     for(int i = 0; i < file_string.size(); i++)
     {
-        kmerind_kmers.push_back(Kmer_4(file_string[i]));
+        kmerind_kmers.push_back(Kmer_k(file_string[i]));
     }
     return kmerind_kmers;
 }
@@ -164,7 +175,7 @@ bool less_than_sort(KmerCountPair i, KmerCountPair j)
 }
 
 
-bool less_than_lower(KmerCountPair i, MyKmerCount j)
+bool less_than_lower(KmerCountPair i, MyKmerCountPair j)
 {
     return i.first < j.first;
 }
