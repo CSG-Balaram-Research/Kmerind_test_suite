@@ -8,7 +8,6 @@
 
 //Type definations
 template <typename key>
-//using map_parm = bliss::index::kmer::BimoleculeHashMapParams<key>;
 using map_parm = bliss::index::kmer::SingleStrandHashMapParams<key>;
 
 template <typename tupple_type>
@@ -21,11 +20,12 @@ typedef bliss::common::alphabet::DNA_T<> alph;
 
 typedef bliss::common::Kmer<2, alph> Kmer_4;
 
-using MapType = dsc::counting_unordered_map<Kmer_4, unsigned int, map_parm>;
+using MapType = dsc::counting_unordered_map<Kmer_4, long unsigned int, map_parm>;
 typedef bliss::index::kmer::CountIndex<MapType> kmer_index;
 
 typedef std::pair<std::vector<std::string>, std::vector<int>> kmerAndCounts;
 
+typedef decltype(::std::declval<MapType>().count(::std::declval<std::vector<Kmer_4> &>())) KmerindCountsType;
 
 
 
@@ -35,7 +35,7 @@ kmerAndCounts read_kmer_counts(std::string file_name);
 
 std::vector<Kmer_4> get_kmerind_kmers(std::vector<std::string> file_string);
 
-
+bool equal_my(KmerindCountsType counts, kmerAndCounts file);
 
 
 int main(int argc, char** argv)
@@ -61,26 +61,45 @@ int main(int argc, char** argv)
     std::vector<Kmer_4> kmerind_kmers = get_kmerind_kmers(actual_counts.first);
 
     auto counts = first.find(kmerind_kmers);
-
-    std::vector<int> file_counts = actual_counts.second;
-    std::vector<Kmer_4> file_kmers = get_kmerind_kmers(actual_counts.first);
-    for(int i = 0; i < counts.size(); i++)
-    {
-        for(int j = 0; j < file_counts.size(); j++)
-        {
-            if(counts[i].first == file_kmers[j])
-            {
-                assert(file_counts[j] == counts[i].second);
-            }
-        }
-    }
-    
-
+    assert(equal_my(counts, actual_counts) == true);
     std::cout << "workdin" << std::endl;
     
     return 0;
 }
 
+
+bool equal_my(KmerindCountsType counts, kmerAndCounts file_data)
+{
+    bool equal = true;    
+    std::vector<int> file_counts = file_data.second;
+    std::vector<Kmer_4> file_kmers = get_kmerind_kmers(file_data.first);
+    for(int i = 0; i < file_counts.size(); i++)
+    {
+        bool i_correct = false;
+        
+        for(int j = 0; j < counts.size(); j++)
+        {
+
+            if(file_kmers[i] == counts[j].first)
+            {
+                if(file_counts[i] == counts[j].second)
+                    i_correct = true;
+                else
+                    i_correct = false;
+                
+                break;  // There will be only one match since (file_kmers are unique)
+            }
+        }
+
+        if(i_correct == false)
+        {
+            equal = false;
+            break;
+        }
+    } 
+
+    return equal;
+}
 
 kmerAndCounts read_kmer_counts(std::string file_name)
 {
