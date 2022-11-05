@@ -46,6 +46,7 @@ bool less_than_sort(KmerCountPair i, KmerCountPair j);
 
 bool less_than_lower(KmerCountPair i, MyKmerCount j);
 
+bool test_for_fastq(std::string file_name, mxx::comm& comm);
 
 
 
@@ -60,22 +61,8 @@ int main(int argc, char** argv)
     //comm.barrier();
 
     
-    //Input data
-    std::string input_file = "tests/test_small.fastq";
-
-
-    //KmerIndex creation
-    kmer_index first(comm);
-    first.build_mmap<fastq_paser, seq_iter>(input_file, comm);
-
-
-    std::string file_name = input_file;
-    kmerAndCounts actual_counts = read_kmer_counts(file_name);
-    std::vector<Kmer_4> kmerind_kmers = get_kmerind_kmers(actual_counts.first);
-
-    auto counts = first.find(kmerind_kmers);
-    assert(equal_my(counts, actual_counts) == true);
-    std::cout << "workdin" << std::endl;
+    test_for_fastq("tests/test_small.fastq", comm);
+    std::cout << "Ran all test cases successfully" << std::endl;
     
     return 0;
 }
@@ -87,6 +74,21 @@ int main(int argc, char** argv)
 
 
 //Function definations
+bool test_for_fastq(std::string file_name, mxx::comm& comm)
+{
+    kmerAndCounts actual_counts = read_kmer_counts(file_name);
+    std::vector<Kmer_4> kmerind_kmers = get_kmerind_kmers(actual_counts.first);
+
+    //KmerIndex creation
+    kmer_index first(comm);
+    first.build_mmap<fastq_paser, seq_iter>(file_name, comm);
+    auto counts = first.find(kmerind_kmers);
+    
+    bool passed = equal_my(counts, actual_counts);
+    return passed;
+}
+
+
 bool equal_my(KmerindCountsType counts, kmerAndCounts file_data)
 {
     std::sort(counts.begin(), counts.end(), less_than_sort);
