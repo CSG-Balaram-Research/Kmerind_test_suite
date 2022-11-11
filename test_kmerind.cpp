@@ -5,8 +5,8 @@
 #include <bits/stdc++.h>
 #include <mpi.h>
 
-
-const int K_value = 2;
+//set K-value and testcase file name
+const int K_value = 10;
 
 //Type definations
 template <typename key>
@@ -64,10 +64,10 @@ int main(int argc, char** argv)
     mxx::env e(argc, argv);
     mxx::comm comm;
     if (comm.rank() == 0) printf("EXECUTING %s\n", argv[0]);
-    //comm.barrier();
+    //comm.barrier(); // Be carefull
 
     
-    test_for_fastq("tests/test_small.fastq", comm);
+    assert(test_for_fastq("tests/test_small.fastq", comm) == true);
     std::cout << "Ran all test cases successfully" << std::endl;
     
     return 0;

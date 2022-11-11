@@ -1,25 +1,19 @@
-## Future works
-- Refactor the test file code
-	- binary search or n^2 too much.
-	- equality compelte !!
-	- testing test_(file_name);
-	- headers remove ../ from the path
+- *tests* directory contains fastq files. (One can add more fastq files)
+- *kmer_couter.py* python program to solve kmercounting.
+    - comandline parameters 
+      - k_size
+      - path to fastq file
+    - dependency *pyfastx*
+    - This programs generates _fastq.counts file in tests directory which contains kmer and its counts.
+    - This *counts will be used by test_kmerind.cpp to check corretness of kmerind codebase.
+- *test_kmerind.cpp* cpp program to check if the kmercounting by kmerind is correct.
+    - commandline
+        - mpic++ -I../kmerind/src/ -I../kmerind/build/ -I../kmerind/ext/mxx/include/ -I../kmerind/ext -I../kmerind/ext/Nadeau -I../kmerind/ext/sparsehash-c11  --std=c++11  test_kmerind.cpp
+        - mpirun -np 1 a.out
+    - dpendency mpicc++, kmerind codebase, kmerind build
+    - parameters.. k value (global variable), file_name(function papramete) as more than file can be tested at time
 
-- check if the other containers are working!!
 
-- Gprof on the code with data adarsh for faster acess
+***Workalbe a better interface for the test_kmerind.cpp inputs***
 
 
-## Nov 4
-- Solved the bug
-- guess why the mistake (cononical) .. ReadPaper .. look for where we are declaring the behaviour done.
-- count --> find (adarsh) help
-
-kmerindex.. kmerindex datastrucute; and mapParameters.
-
-## Nov 5
-- correctness of my_equal
-- efficient implementaion
-- refactoring names, gloabal test function.
-
-- correcteness of the code
